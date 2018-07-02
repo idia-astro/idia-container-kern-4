@@ -1,0 +1,73 @@
+Bootstrap: debootstrap
+MirrorURL: http://ftp.leg.uct.ac.za/ubuntu/
+OSVersion: bionic
+Include: software-properties-common
+
+%environment
+        export LC_ALL=C
+        export SOFTWARE_PATH=/software
+        export PATH=$SOFTWARE_PATH/Montage/bin:$PATH
+
+%post
+    # Installation of the KERN4 packages
+    apt-get update -y
+    apt-get install -y wget vim apt-utils wget git
+    add-apt-repository -s ppa:kernsuite/kern-4
+    add-apt-repository restricted
+    apt-add-repository multiverse
+    apt-get update -y
+
+
+    apt-get install -y  21cmfast aips bl-sigproc blimpy casalite casarest chgcentre ctypesgen ddfacet difmap drive-casa dysco galsim gbt-seti heimdall-astro karma kittens lofar losoto meqtrees-timba msutils multinest obit owlcat polygon2 ppgplot prefactor psrcat psrchive psrdada purr pymoresane python-typing pyxis rfimasker rmextract rpfits sagecal sched sigpyproc simfast21 simms singularity-container tempo  tigger tirific turbo-seti
+
+    #install pip and force to use pip 9 
+    apt-get -y install python-pip
+   #pip install --upgrade pip # silence pip upgrade warnings
+    pip install ipykernel
+
+    # Additional packages installed via pip can be added here
+    pip install atpy psutil katdal==0.9 msutils parseltongue peasoup pyfftw pymonetdb attrdict blitz  cub  gsm astro-tigger astro-tigger-lsm
+
+    apt-get -y install python3-pip
+    pip3 install presto
+
+    #Install Cubical
+    #pip install git+https://github.com/ratt-ru/CubiCal.git
+
+    # Ensure /software is there to install unpackaged stuff
+    SOFTWARE_PATH=/software
+    mkdir -p $SOFTWARE_PATH
+
+    # Ensure /installer is there to download stuff
+    INSTALLER=/installer
+    mkdir -p $INSTALLER
+
+    # Installation of PyBDSF
+    apt-get install -y libboost-python-dev gfortran
+    pip install --upgrade setuptools numpy scipy pyfits pywcs
+    cd $INSTALLER/
+    git clone https://github.com/lofar-astron/PyBDSF.git
+    cd PyB*
+    python setup.py install
+
+	# Montage 5.x
+	cd $SOFTWARE_PATH
+	wget -O - http://montage.ipac.caltech.edu/download/Montage_v5.0.tar.gz | tar zx
+	cd Montage
+	make
+
+	# Create /users to bind home directories into the container.
+	mkdir -p /users /scratch /data
+
+	# Cleanup
+	apt-get clean
+	apt-get autoclean
+
+%runscript
+if [ $# -eq 0 ]; then
+	echo "The following Python modules are installed in this image:"
+        pip freeze
+        echo "Example usage: singularity.img [command] [args] [options]"
+else
+        exec "$@"
+fi
